@@ -1,10 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Cave</title>
+    <title>Accueil - Cave à Vin</title>
 </head>
 <body>
-    <h1>Bienvenue sur CaveApp</h1>
+
+<h1>Bienvenue {{ user['prenom'] }} {{ user['nom'] }}</h1>
+<p>Votre login : {{ user['login'] }}</p>
+
+<h1>Ma Cave :</h1>
+<a href="#">Créer une cave</a>
+
+<p> {% for c in cave %}
+    {{ c['nom'] }}
+    {% endfor %} </p>
+
+<h1>Mes Bouteilles</h1>
+<a href="#">Ajouter une bouteille</a>
+<ul>
+    {% for b in bouteilles %}
+    <li>{{ b['nom'] }} - {{ b['domaine'] }} - {{ b['type'] }} - {{ b['annee'] }} <a href="{{ url_for('archiver', bouteille_id=b['id']) }}">Archiver bouteille</a></li>
+    {% endfor %}
+</ul>
+
+
+<h1>Mes Bouteilles Archivées</h1>
+<ul>
+    {% for b in bouteillesArchivees %}
+    <li>{{ b['nom'] }} - {{ b['domaine'] }} - {{ b['type'] }} - {{ b['annee'] }} - {{ b['note'] }}/10 - {{ b['commentaire'] }}</li>
+    {% endfor %}
+</ul>
+
+<a href="communaute">Avis de la communauté</a>
+<br> <br>
+<a href="{{ url_for('logout') }}">Se déconnecter</a>
 </body>
 </html>

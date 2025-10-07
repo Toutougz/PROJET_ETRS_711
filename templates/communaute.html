@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Communaute</title>
+</head>
+<body>
+<header>
+    <p> Connecté en tant que : {{ user['prenom'] }} {{ user['nom'] }} </p>
+</header>
+<h1>Toutes les Bouteilles Archivées</h1>
+<ul>
+    {% for b in bouteillesArchivees %}
+    <li>{{ b['proprietaire'] }} :  {{ b['nom'] }} - {{ b['domaine'] }} - {{ b['type'] }} - {{ b['annee'] }} - {{ b['note'] }}/10 - {{ b['commentaire'] }}</li>
+    {% endfor %}
+</ul>
+<a href="/">Menu</a>
+</body>
+</html>

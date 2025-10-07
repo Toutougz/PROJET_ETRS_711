@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cave</title>
+</head>
+<body>
+    <h1>Cave de {{ user['prenom'] }} {{ user['nom'] }}</h1>
+    <p> {% for c in cave %}
+    {{ c['nom']  }}
+    {% endfor %}
+        </p>
+<a href="/">Menu</a>
+</body>
+
+</html>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Mes Bouteilles</title>
+</head>
+<body>
+  <h1>Bouteilles de {{ user['prenom'] }} {{ user['nom'] }}</h1>
+  <ul>
+        {% for b in bouteilles %}
+      <li>{{ b['nom'] }} - {{ b['domaine'] }} - {{ b['type'] }} - {{ b['annee'] }}</li>
+    {% endfor %}
+  </ul>
+  <a href="/">Menu</a>
+</body>
+</html>
