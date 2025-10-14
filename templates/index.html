@@ -9,15 +9,15 @@
 <h1>Bienvenue {{ user['prenom'] }} {{ user['nom'] }}</h1>
 <p>Votre login : {{ user['login'] }}</p>
 
-<h1>Ma Cave :</h1>
-<a href="#">Créer une cave</a>
+<h2>Ma Cave :</h2>
+<a href="{{ url_for('creer_cave') }}">Créer une cave</a>
 
 <p> {% for c in cave %}
     {{ c['nom'] }}
     {% endfor %} </p>
 
-<h1>Mes Bouteilles</h1>
-<a href="#">Ajouter une bouteille</a>
+<h2>Mes Bouteilles</h2>
+<a href="{{ url_for('creer_bouteille') }}">Ajouter une bouteille</a>
 <ul>
     {% for b in bouteilles %}
     <li>{{ b['nom'] }} - {{ b['domaine'] }} - {{ b['type'] }} - {{ b['annee'] }} <a href="{{ url_for('archiver', bouteille_id=b['id']) }}">Archiver bouteille</a></li>
@@ -25,10 +25,10 @@
 </ul>
 
 
-<h1>Mes Bouteilles Archivées</h1>
+<h2>Mes Bouteilles Archivées</h2>
 <ul>
     {% for b in bouteillesArchivees %}
-    <li>{{ b['nom'] }} - {{ b['domaine'] }} - {{ b['type'] }} - {{ b['annee'] }} - {{ b['note'] }}/10 - {{ b['commentaire'] }}</li>
+    <li>{{ b['nom'] }} - {{ b['domaine'] }} - {{ b['type'] }} - {{ b['annee'] }} - {{ b['note'] }}/10 - Moyenne: {{ b['moyenne'] }}/10 -  {{ b['commentaire'] }}</li>
     {% endfor %}
 </ul>
 

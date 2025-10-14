@@ -7,7 +7,7 @@ from datetime import date
 import logging
 import hashlib
 LOGGER = logging.getLogger(__name__)
-
+from uuid import uuid4
 #######
 #Classes
 #######
@@ -58,7 +58,9 @@ class DB:
                     nom TEXT,
                     nbr_bouteilles INTEGER,
                     bouteille INTEGER,
-                    FOREIGN KEY (bouteille) REFERENCES Bouteille(id)
+                    proprietaire TEXT,
+                    FOREIGN KEY (bouteille) REFERENCES Bouteille(id),
+                    FOREIGN KEY (proprietaire) REFERENCES Utilisateur(login)
                     )""")
 
         cur.execute("""
@@ -127,8 +129,8 @@ class Utilisateur(DB):
         else:
             LOGGER.debug(f"{cave.nom_cave} ")
             cur.execute(
-                "INSERT INTO Cave (id, nom, proprietaire) VALUES (?, ?, ?)",
-                (cave.id_cave, cave.nom_cave, self.login)
+                "INSERT INTO Cave (nom, proprietaire) VALUES (?, ?)",
+                (cave.nom_cave, self.login)
             )
             LOGGER.debug(f"{cave.nom_cave} ajoutée à la BDD")
             self.conn.commit()
@@ -208,8 +210,24 @@ class Utilisateur(DB):
         #print(f"Bouteille {bouteille.nom} supprimée")
 
 
+    def sauvegarder_etagere(self, etagere:"Etagere"):
+            cur = self.conn.cursor()
+            # Vérification : le user a t-il deja une cave ?
+            LOGGER.debug(f"{etagere.nom_etagere} ")
+            cur.execute(
+             "INSERT INTO Etagere (id, nom, proprietaire,nbr_bouteilles) VALUES (?, ?, ?, ?)",
+            (etagere.id_etagere, etagere.nom_etagere, self.login, etagere.emplacement_bouteille)
+            )
+            LOGGER.debug(f"{etagere.nom_etagere} ajoutée à la BDD")
+            self.conn.commit()
+
     def consulter_etagere(self):
-        pass
+        cur = self.conn.cursor()
+        cur.execute("SELECT * FROM Etagere WHERE proprietaire = ?", (self.login,))
+        MesEtageres = cur.fetchall()
+        LOGGER.debug(f"{Etagere}")
+        return MesEtageres
+
     # il faut une class pour créer une etagere et lier les classes avec la cave et les bouteilles.
 
     def trier_bouteille(self):
@@ -221,15 +239,17 @@ class Cave:
         self.nombre_bouteille = nombre_bouteille
         self.nom_cave = nom_cave
 
-class etagere:
+class Etagere:
     def __init__(self,id_etagere,nom_etagere,emplacement_bouteille:int):
         self.id_etagere = id_etagere
         self.nom_etagere = nom_etagere
         self.emplacement_bouteille = emplacement_bouteille
 
+    def __str__(self):
+        return f"{self.nom_etagere}, Il y a {self.emplacement_bouteille} emplacements"
 
 class Bouteille:
-    def __init__(self, domaine:str,nom:str,type:str,annee:str,region:str, prix:float, commentaire:Optional[str] = None ,note:Optional[float] = None,moyenne:Optional[float] = None, etiquette: Optional[str] = None):
+    def __init__(self, domaine:str,nom:str,type:str,annee:str,region:str, prix:float, conn=None, commentaire:Optional[str] = None ,note:Optional[float] = None,moyenne:Optional[float] = None, etiquette: Optional[str] = None):
         self.domaine = domaine
         self.nom = nom
         self.type = type
@@ -240,6 +260,20 @@ class Bouteille:
         self.moyenne = moyenne
         self.etiquette = etiquette
         self.prix = prix
+        self.conn=conn
+
+    def calculerMoyenne(self):
+        cur = self.conn.cursor()
+        cur.execute("SELECT AVG(note) FROM Bouteille WHERE nom = ? AND note IS NOT NULL", (self.nom,))
+        resultat = cur.fetchone()
+        self.moyenne = resultat[0] if resultat and resultat[0] is not None else 0
+
+        # Mettre à jour la moyenne dans la BDD pour cette bouteille
+        cur.execute("UPDATE Bouteille SET moyenne = ? WHERE nom = ?", (self.moyenne, self.nom))
+        self.conn.commit()
+        #on ne match que les bouteilles de 1 user, il faudrait faire comme pour le truc de communauté et matcher les statut = 1
+
+
 
     def __str__(self):
         return f" Bouteille : {self.domaine}, {self.nom}, {self.type}, {self.annee}, {self.region}"
@@ -255,11 +289,13 @@ def main():
     cave1 = Cave("cave1")
     Utilisateur.ajouter_cave(user1,cave1)
     user2=Utilisateur(2,"User2","PrenomUser2","puser2","azerty321", conn=db.conn)
-    cave2=Cave(2,"cave2")
+    cave2=Cave("cave2")
 
     bouteille1 = Bouteille("Chateau Bourgogne","Cabernet Sauvignon","Rouge",2018,"Bourgogne",25)
     bouteille2 = Bouteille("Chateau Coca","Cocacola","Blanc",2014,"Bourgogne",98)
     bouteille3 = Bouteille("Chateau Tencin","Le tencinois","Rosée",2003,"Isere",42)
+
+
 
     Utilisateur.ajouter_bouteille(user1,bouteille1)
     Utilisateur.ajouter_bouteille(user1,bouteille2)
@@ -279,11 +315,13 @@ def main():
     Utilisateur.consulter_cave(user1)
     Utilisateur.consulter_cave(user2)
 
+    Utilisateur.consulter_etagere(user1)
 
     Utilisateur.sauvegarder_user(user1)
     Utilisateur.sauvegarder_user(user2)
 
     Utilisateur.sauvegarder_cave(user2,cave2)
+    Utilisateur.sauvegarder_cave(user1, cave1)
 
 
     Utilisateur.afficher_bouteille(user1)
