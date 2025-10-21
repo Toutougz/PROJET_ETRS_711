@@ -1,43 +1,57 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <meta charset="UTF-8">
     <title>Créer une bouteille</title>
 </head>
 <body>
-    <h1>Créer une bouteille</h1>
+    <div class="creer-bouteille-container">
+        <h1>Créer une bouteille</h1>
 
-    <!-- Affichage des messages flash si nécessaire -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <p>{{ message }}</p>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+        <!-- Messages flash
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            {% endif %}
+        {% endwith %} -->
 
-    <form action="{{ url_for('creer_bouteille') }}" method="POST">
-        <label for="domaine">Domaine :</label><br>
-        <input type="text" id="domaine" name="domaine" required><br><br>
+        <form action="{{ url_for('creer_bouteille') }}" method="POST" enctype="multipart/form-data">
+            <label for="domaine">Domaine :</label>
+            <input type="text" id="domaine" name="domaine" required>
 
-        <label for="nom">Nom :</label><br>
-        <input type="text" id="nom" name="nom" required><br><br>
+            <label for="nom">Nom :</label>
+            <input type="text" id="nom" name="nom" required>
 
-        <label for="type">Type :</label><br>
-        <input type="text" id="type" name="type" required><br><br>
+            <label for="type">Type :</label>
+            <input type="text" id="type" name="type" required>
 
-        <label for="annee">Année :</label><br>
-        <input type="number" id="annee" name="annee" required><br><br>
+            <label for="annee">Année :</label>
+            <input type="number" id="annee" name="annee" required>
 
-        <label for="region">Région :</label><br>
-        <input type="text" id="region" name="region" required><br><br>
+            <label for="region">Région :</label>
+            <input type="text" id="region" name="region" required>
 
-        <label for="prix">Prix :</label><br>
-        <input type="number" step="0.01" id="prix" name="prix" required><br><br>
+            <label for="prix">Prix :</label>
+            <input type="number" step="0.01" id="prix" name="prix" required>
 
-        <button type="submit">Créer la bouteille</button>
-    </form>
 
-    <p><a href="{{ url_for('index') }}">Retour à l'accueil</a></p>
+            <label for="etagere">Étagère :</label>
+        <select name="etagere_id" id="etagere" required>
+            {% for etagere in etageres %}
+        <option value="{{ etagere['id'] }}">{{ etagere['nom'] }} ({{ etagere['capacite'] }} places)</option>
+         {% endfor %}
+        </select>
+
+            <label>Image :</label>
+            <input type="file" name="image">
+
+            <button type="submit">Créer la bouteille</button>
+        </form>
+
+        <a href="{{ url_for('index') }}">Annuler</a>
+    </div>
 </body>
 </html>

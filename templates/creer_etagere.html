@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fr">
+<head>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <meta charset="UTF-8">
+    <title>Créer une étagère</title>
+</head>
+<body>
+<div class="container">
+
+    <h1>Créer une nouvelle étagère</h1>
+    <form method="post">
+        <label>Nom de l'étagère :</label>
+        <input type="text" name="nom_etagere" required><br><br>
+
+        <label>Capacité :</label>
+        <input type="number" name="capacite" min="1" required><br><br>
+
+        <button type="submit">Créer l'étagère</button>
+    </form>
+    <br>
+            <a href="{{ url_for('index') }}">Annuler</a>
+
+    </div>
+</body>
+</html>

@@ -7,7 +7,6 @@ from datetime import date
 import logging
 import hashlib
 LOGGER = logging.getLogger(__name__)
-from uuid import uuid4
 #######
 #Classes
 #######
@@ -21,6 +20,7 @@ class DB:
 
     def creer_tables(self):
         cur = self.conn.cursor()
+
 
         cur.execute("""
                     CREATE TABLE IF NOT EXISTS Utilisateur
@@ -48,7 +48,9 @@ class DB:
                     prix INTEGER,
                     proprietaire TEXT,
                     statut  INTEGER,
-                    FOREIGN KEY (proprietaire) REFERENCES Utilisateur(login)
+                    etagere_id INTERGER,
+                    FOREIGN KEY (proprietaire) REFERENCES Utilisateur(login),
+                    FOREIGN KEY (etagere_id) REFERENCES Etagere(id)
                     )""")
 
         cur.execute("""
@@ -56,10 +58,8 @@ class DB:
                     (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     nom TEXT,
-                    nbr_bouteilles INTEGER,
-                    bouteille INTEGER,
+                    capacite INTEGER,
                     proprietaire TEXT,
-                    FOREIGN KEY (bouteille) REFERENCES Bouteille(id),
                     FOREIGN KEY (proprietaire) REFERENCES Utilisateur(login)
                     )""")
 
@@ -125,7 +125,7 @@ class Utilisateur(DB):
         cave_existant = cur.fetchone()
         if cave_existant:
             LOGGER.debug(f"{self} à deja une cave")
-            return f"{self} à deja une cave"
+            return False
         else:
             LOGGER.debug(f"{cave.nom_cave} ")
             cur.execute(
@@ -134,6 +134,7 @@ class Utilisateur(DB):
             )
             LOGGER.debug(f"{cave.nom_cave} ajoutée à la BDD")
             self.conn.commit()
+            return True
 
 
     def consulter_cave(self):
@@ -157,20 +158,73 @@ class Utilisateur(DB):
         LOGGER.debug(f"Bouteille : {bouteille.nom} ajoutée")
         #print(f"Bouteille : {bouteille.nom} ajoutée")
 
-
-    def sauvegarder_bouteille(self, bouteille:"Bouteille"):
+    """   def sauvegarder_bouteille(self, bouteille:"Bouteille"):
         cur = self.conn.cursor()
         # Vérification : le user a t-il deja une cave ?
         if self.consulter_cave():
             LOGGER.debug(f"{bouteille.nom} ")
             cur.execute(
-                "INSERT INTO Bouteille (domaine,nom,type,annee,region,commentaire,etiquette,prix,proprietaire,statut) VALUES (?,?, ?,?,?,?,?,?,?,?)",
-                (bouteille.nom,bouteille.domaine,bouteille.type,bouteille.annee,bouteille.region,bouteille.commentaire,bouteille.etiquette,bouteille.prix,self.login,0)
-            )
+                    "INSERT INTO Bouteille (domaine, nom, type, annee, region, commentaire, etiquette, prix, proprietaire, statut) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    (
+                        bouteille.domaine,  # domaine
+                        bouteille.nom,  # nom
+                        bouteille.type,  # type
+                        bouteille.annee,  # annee
+                        bouteille.region,  # region
+                        bouteille.commentaire or "",  # commentaire
+                        bouteille.etiquette or "",  # etiquette (chemin image)
+                        bouteille.prix or 0,  # prix
+                        self.login,  # proprietaire
+                        0  # statut
+                    )
+                    )
             LOGGER.debug(f"{bouteille.nom} ajoutée à la BDD")
             self.conn.commit()
         else:
-            print("impossible d'ajouter une bouteille vous n'avez pas de cave")
+            print("impossible d'ajouter une bouteille vous n'avez pas de cave")"""
+
+
+    def sauvegarder_bouteille(self, bouteille: "Bouteille"):
+        cur = self.conn.cursor()
+        if self.consulter_cave():
+            # Vérifie si l'étagère a encore de la place
+            cur.execute("""
+                SELECT COUNT(*) FROM Bouteille WHERE etagere_id = ?
+            """, (bouteille.etagere_id,))
+            nb_bouteilles = cur.fetchone()[0]
+
+            cur.execute("""
+                SELECT capacite FROM Etagere WHERE id = ?
+            """, (bouteille.etagere_id,))
+            capacite = cur.fetchone()[0]
+
+            if nb_bouteilles < capacite:
+                cur.execute("""
+                    INSERT INTO Bouteille (domaine, nom, type, annee, region, commentaire,
+                                           etiquette, prix, proprietaire, statut, etagere_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    bouteille.domaine,
+                    bouteille.nom,
+                    bouteille.type,
+                    bouteille.annee,
+                    bouteille.region,
+                    bouteille.commentaire or "",
+                    bouteille.etiquette or "",
+                    bouteille.prix or 0,
+                    self.login,
+                    0,
+                    bouteille.etagere_id
+                ))
+                LOGGER.debug(f"{bouteille.nom} ajoutée à la BDD sur l'étagère {bouteille.etagere_id}")
+                self.conn.commit()
+                return True
+            else:
+                print("Impossible d'ajouter la bouteille : étagère pleine.")
+                return False
+        else:
+            print("Impossible d'ajouter une bouteille : vous n'avez pas de cave.")
+
 
 
     def afficher_bouteille(self):
@@ -210,25 +264,45 @@ class Utilisateur(DB):
         #print(f"Bouteille {bouteille.nom} supprimée")
 
 
-    def sauvegarder_etagere(self, etagere:"Etagere"):
-            cur = self.conn.cursor()
-            # Vérification : le user a t-il deja une cave ?
-            LOGGER.debug(f"{etagere.nom_etagere} ")
-            cur.execute(
-             "INSERT INTO Etagere (id, nom, proprietaire,nbr_bouteilles) VALUES (?, ?, ?, ?)",
-            (etagere.id_etagere, etagere.nom_etagere, self.login, etagere.emplacement_bouteille)
-            )
-            LOGGER.debug(f"{etagere.nom_etagere} ajoutée à la BDD")
-            self.conn.commit()
+    def sauvegarder_etagere(self, etagere: "Etagere"):
+        cur = self.conn.cursor()
+        cur.execute("""
+            INSERT INTO Etagere (nom, capacite, proprietaire)
+            VALUES (?, ?, ?)
+        """, (etagere.nom_etagere, etagere.capacite, self.login))
+        LOGGER.debug(f"{etagere.nom_etagere} ajoutée à la BDD")
+        self.conn.commit()
 
     def consulter_etagere(self):
-        cur = self.conn.cursor()
-        cur.execute("SELECT * FROM Etagere WHERE proprietaire = ?", (self.login,))
-        MesEtageres = cur.fetchall()
-        LOGGER.debug(f"{Etagere}")
-        return MesEtageres
+            cur = self.conn.cursor()
+            cur.execute("""
+                SELECT E.id, E.nom, E.capacite, B.nom, B.annee, B.type, B.region
+                FROM Etagere E
+                LEFT JOIN Bouteille B ON E.id = B.etagere_id
+                WHERE E.proprietaire = ?
+                ORDER BY E.id
+            """, (self.login,))
+            return cur.fetchall()
 
-    # il faut une class pour créer une etagere et lier les classes avec la cave et les bouteilles.
+    def supprimer_etagere(self, etagere_id: int):
+        cur = self.conn.cursor()
+
+        # Vérifier si l'étagère contient des bouteilles
+        cur.execute("""
+            SELECT COUNT(*) FROM Bouteille
+            WHERE etagere_id = ? AND proprietaire = ?
+        """, (etagere_id, self.login))
+
+        nb_bouteilles = cur.fetchone()[0]
+
+        if nb_bouteilles > 0:
+            # Impossible de supprimer : il y a encore des bouteilles
+            return False
+        else:
+            # On supprime l'étagère
+            cur.execute("DELETE FROM Etagere WHERE id = ? AND proprietaire = ?", (etagere_id, self.login))
+            self.conn.commit()
+            return True
 
     def trier_bouteille(self):
         pass
@@ -240,16 +314,17 @@ class Cave:
         self.nom_cave = nom_cave
 
 class Etagere:
-    def __init__(self,id_etagere,nom_etagere,emplacement_bouteille:int):
+    def __init__(self,id_etagere,nom_etagere, proprietaire, capacite):
         self.id_etagere = id_etagere
         self.nom_etagere = nom_etagere
-        self.emplacement_bouteille = emplacement_bouteille
+        self.proprietaire = proprietaire
+        self.capacite = capacite
 
     def __str__(self):
         return f"{self.nom_etagere}, Il y a {self.emplacement_bouteille} emplacements"
 
 class Bouteille:
-    def __init__(self, domaine:str,nom:str,type:str,annee:str,region:str, prix:float, conn=None, commentaire:Optional[str] = None ,note:Optional[float] = None,moyenne:Optional[float] = None, etiquette: Optional[str] = None):
+    def __init__(self, domaine:str,nom:str,type:str,annee:str,region:str, prix:float, conn=None, commentaire:Optional[str] = None ,note:Optional[float] = None,moyenne:Optional[float] = None, etiquette: Optional[str] = None, etagere_id: Optional[int] = None,):
         self.domaine = domaine
         self.nom = nom
         self.type = type
@@ -261,6 +336,7 @@ class Bouteille:
         self.etiquette = etiquette
         self.prix = prix
         self.conn=conn
+        self.etagere_id = etagere_id
 
     def calculerMoyenne(self):
         cur = self.conn.cursor()

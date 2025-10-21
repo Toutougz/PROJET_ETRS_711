@@ -1,20 +1,24 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <meta charset="UTF-8">
     <title>Archiver Bouteille</title>
 </head>
 <body>
-    <h1>Archiver la bouteille</h1>
-    <form method="POST">
-        <label for="note">Note (0 à 10) :</label>
-        <input type="number" step="1" min="0" max="10" name="note" required>
-        <br>
-        <textarea name="commentaire" rows="5" cols="50" placeholder="Écrivez votre commentaire ici..."></textarea>
-        <br> <br>
-        <button type="submit">Valider</button>
-    </form>
-    <br> <br>
-    <a href="{{ url_for('bouteille') }}">Retour aux bouteilles</a>
+    <div class="archiver-container">
+        <h1>Archiver la bouteille</h1>
+        <form method="POST">
+            <label for="note">Note (0 à 10) :</label>
+            <input type="number" step="1" min="0" max="10" name="note" required>
+
+            <label for="commentaire">Commentaire :</label>
+            <textarea name="commentaire" rows="5" placeholder="Écrivez votre commentaire ici..."></textarea>
+
+            <button type="submit">Valider</button>
+        </form>
+
+        <a href="{{ url_for('index') }}">Retour au menu</a>
+    </div>
 </body>
 </html>

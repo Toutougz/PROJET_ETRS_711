@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <meta charset="UTF-8">
     <title>Communaute</title>
 </head>
@@ -9,11 +10,48 @@
     <p> Connecté en tant que : {{ user['prenom'] }} {{ user['nom'] }} </p>
 </header>
 <h1>Toutes les Bouteilles Archivées</h1>
-<ul>
-    {% for b in bouteillesArchivees %}
-    <li>{{ b['proprietaire'] }} :  {{ b['nom'] }} - {{ b['domaine'] }} - {{ b['type'] }} - {{ b['annee'] }} - {{ b['note'] }}/10 - {{ b['commentaire'] }}</li>
-    {% endfor %}
-</ul>
+<div class="container">
+<table>
+                <thead>
+                    <tr>
+                        <th>Proprietaire</th>
+                        <th>Image</th>
+                        <th>Nom</th>
+                        <th>Domaine</th>
+                        <th>Type</th>
+                        <th>Année</th>
+                        <th>Prix</th>
+                        <th>Moyenne</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in bouteillesArchivees %}
+                    <tr>
+                        <td>{{ b['proprietaire'] }}</td>
+                        <td>
+                            {% if b['etiquette'] %}
+                                <img src="{{ b['etiquette'] }}" style="max-width:50px;">
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ b['nom'] }}</td>
+                        <td>{{ b['domaine'] }}</td>
+                        <td>{{ b['type'] }}</td>
+                        <td>{{ b['annee'] }}</td>
+                        <td>{{ b['prix'] }} €</td>
+                        <td>{{ b['moyenne'] }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7">Aucune bouteille dans cette étagère.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+
 <a href="/">Menu</a>
+    </div>
 </body>
 </html>

@@ -3,7 +3,9 @@ import flask
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 import sqlite3, hashlib
 from werkzeug.security import generate_password_hash
+from werkzeug.utils import secure_filename
 from cave import Utilisateur
+import os
 
 app = Flask(__name__)
 app.secret_key = "MaCleTopSecreteDeLaMortQuiTue"
@@ -34,25 +36,68 @@ def get_user():
     )
     return user
 
+UPLOAD_FOLDER = "./static/images"
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
 
 @app.route("/")
 def index():
     if 'user' not in session:
         return redirect(url_for('login'))
+
     user = get_user()
     MesBouteilles = user.afficher_bouteille()
-
-
     MesBouteillesArchivees = user.afficher_bouteille_archivees()
-    # Calcul des moyennes par nom
-    noms_uniques = set(b["nom"] for b in MesBouteillesArchivees)  # récupération des noms uniques
+
+    # Calcul des moyennes pour les bouteilles archivées
+    noms_uniques = set(b["nom"] for b in MesBouteillesArchivees)
     for nom in noms_uniques:
-        # Crée un objet Bouteille avec le nom et la connexion pour calculer la moyenne
-        b = cave.Bouteille(domaine=None, nom=nom, type=None, annee=None, region=None, prix=None, conn=get_db_connection())
+        b = cave.Bouteille(domaine=None, nom=nom, type=None, annee=None, region=None, prix=None, conn=user.conn)
         b.calculerMoyenne()
 
+    # Récupérer les caves
     VoirMaCave = user.consulter_cave()
-    return render_template('index.html', user=session['user'], bouteilles=MesBouteilles, cave=VoirMaCave,
+
+    # Construire une structure caves → étagères → bouteilles
+    cur = user.conn.cursor()
+    caves_data = []
+    for cave_row in VoirMaCave:
+        cave_id = cave_row['id']
+
+        # Récupérer les étagères de cette cave
+        cur.execute("""
+            SELECT * FROM Etagere WHERE proprietaire = ? ORDER BY id
+        """, (user.login,))
+        etageres = cur.fetchall()
+
+        etageres_data = []
+        for etagere in etageres:
+            etagere_id = etagere['id']
+
+            # Récupérer les bouteilles de cette étagère
+            cur.execute("""
+                SELECT * FROM Bouteille WHERE etagere_id = ? AND proprietaire = ? AND statut = 0
+            """, (etagere_id, user.login))
+            bouteilles = cur.fetchall()
+
+            etageres_data.append({
+                'etagere': etagere,
+                'bouteilles': bouteilles
+            })
+
+        caves_data.append({
+            'cave': cave_row,
+            'etageres': etageres_data
+        })
+
+    return render_template('index.html',
+                           user=session['user'],
+                           caves_data=caves_data,
                            bouteillesArchivees=MesBouteillesArchivees)
 
 
@@ -100,7 +145,7 @@ def archiver(bouteille_id):
         # Mettre à jour la bouteille dans la DB
         cur = user.conn.cursor()
         cur.execute(
-            "UPDATE Bouteille SET statut = 1, note = ?, commentaire = ? WHERE id = ? AND proprietaire = ?",
+            "UPDATE Bouteille SET etagere_id = NULL, statut = 1, note = ?, commentaire = ? WHERE id = ? AND proprietaire = ?",
             (note, commentaire, bouteille_id, user.login)
         )
         user.conn.commit()
@@ -117,7 +162,13 @@ def creer_cave():
     if request.method == 'POST':
         nom_cave = request.form.get('nom_cave')
         MaCave = cave.Cave(nom_cave)
-        Utilisateur.sauvegarder_cave(user, MaCave)
+
+        success = Utilisateur.sauvegarder_cave(user, MaCave)
+        if success:
+            flash(f"Cave '{nom_cave}' créée avec succès !", "success")
+        else:
+            flash("Vous avez déjà une cave, impossible d'en créer une nouvelle.", "error")
+
         return redirect(url_for('index'))
     return render_template("creatCave.html")
 
@@ -127,6 +178,12 @@ def creer_bouteille():
     user = get_user()
     if 'user' not in session:
         return redirect(url_for('login'))
+
+    # Récupérer les étagères de l'utilisateur pour le formulaire
+    cur = user.conn.cursor()
+    cur.execute("SELECT * FROM Etagere WHERE proprietaire = ?", (user.login,))
+    etageres = cur.fetchall()
+
     if request.method == 'POST':
         domaine = request.form.get('domaine')
         nom = request.form.get('nom')
@@ -134,10 +191,46 @@ def creer_bouteille():
         annee = request.form.get('annee')
         region = request.form.get('region')
         prix = request.form.get('prix')
-        MaBouteille = cave.Bouteille(domaine, nom, type, annee, region, prix)
-        Utilisateur.sauvegarder_bouteille(user, MaBouteille)
+        etagere_id = request.form.get('etagere_id')
+        # Vérifier que l'étagère sélectionnée appartient bien à l'utilisateur
+        cur.execute("SELECT * FROM Etagere WHERE id = ? AND proprietaire = ?", (etagere_id, user.login))
+        if cur.fetchone() is None:
+            flash("Étagère invalide")
+            return redirect(url_for('creer_bouteille'))
+
+        # Gestion de l'image
+        file = request.files.get('image')
+        image_path = None
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+            file.save(image_path)
+
+        MaBouteille = cave.Bouteille(
+            domaine=domaine,
+            nom=nom,
+            type=type,
+            annee=annee,
+            region=region,
+            prix=float(prix) if prix else 0.0,
+            etiquette=image_path,
+            etagere_id = int(etagere_id)
+        )
+
+
+        success = Utilisateur.sauvegarder_bouteille(user, MaBouteille)
+        if success:
+            flash(f"Bouteille créée avec succès !", "success")
+        else:
+            flash("Impossible d'ajouter la bouteille : étagère pleine.", "error")
+
+
+
         return redirect(url_for('index'))
-    return render_template("creatBouteille.html")
+    return render_template("creatBouteille.html", etageres=etageres)
+
+
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -162,6 +255,51 @@ def login():
             flash("Identifiant ou mot de passe incorrect.", "danger")
 
     return render_template('login.html')
+
+
+@app.route('/creer_etagere', methods=['GET', 'POST'])
+def creer_etagere():
+    user = get_user()
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        nom_etagere = request.form.get('nom_etagere')
+        capacite = request.form.get('capacite')
+
+        if not nom_etagere or not capacite:
+            flash("Veuillez remplir tous les champs.")
+            return redirect(url_for('creer_etagere'))
+
+        try:
+            capacite = int(capacite)
+        except ValueError:
+            flash("La capacité doit être un nombre.")
+            return redirect(url_for('creer_etagere'))
+
+        # Créer l'objet Etagere
+        nouvelle_etagere = cave.Etagere(id_etagere=None, nom_etagere=nom_etagere, capacite=capacite, proprietaire=user.login)
+        user.sauvegarder_etagere(nouvelle_etagere)
+
+        flash(f"Étagère '{nom_etagere}' créée avec succès !")
+        return redirect(url_for('index'))  # redirection vers page principale
+
+    # GET : afficher le formulaire de création
+    return render_template('creer_etagere.html')
+
+
+@app.route("/etagere/supprimer/<int:etagere_id>")
+def supprimer_etagere(etagere_id):
+    user = get_user()
+
+    success = user.supprimer_etagere(etagere_id)
+
+    if success:
+        flash("Étagère supprimée avec succès !", "success")
+    else:
+        flash("Impossible de supprimer l'étagère : elle contient encore des bouteilles.", "error")
+
+    return redirect(url_for('index'))
 
 
 @app.route('/logout')

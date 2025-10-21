@@ -1,39 +1,140 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <meta charset="UTF-8">
     <title>Accueil - Cave à Vin</title>
 </head>
 <body>
 
-<h1>Bienvenue {{ user['prenom'] }} {{ user['nom'] }}</h1>
-<p>Votre login : {{ user['login'] }}</p>
+<header>
 
-<h2>Ma Cave :</h2>
-<a href="{{ url_for('creer_cave') }}">Créer une cave</a>
+    <nav>
+        <a href="communaute">Avis de la communauté</a> || <a href="{{ url_for('logout') }}">Se déconnecter</a>
+    </nav>
+</header>
 
-<p> {% for c in cave %}
-    {{ c['nom'] }}
-    {% endfor %} </p>
+<h1>Bienvenue : {{ user['prenom'] }} {{ user['nom'] }} - {{ user['login'] }}</h1>
 
-<h2>Mes Bouteilles</h2>
-<a href="{{ url_for('creer_bouteille') }}">Ajouter une bouteille</a>
-<ul>
-    {% for b in bouteilles %}
-    <li>{{ b['nom'] }} - {{ b['domaine'] }} - {{ b['type'] }} - {{ b['annee'] }} <a href="{{ url_for('archiver', bouteille_id=b['id']) }}">Archiver bouteille</a></li>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-messages">
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+
+
+
+
+
+<div class="container">
+    <h1>Bouteilles</h1>
+    {% for cave_data in caves_data %}
+        <h2>Cave : {{ cave_data.cave['nom'] }}</h2>
+   <p> <a href="{{ url_for('creer_cave') }}">Créer une cave</a> </p>
+   <p> <a href="{{ url_for('creer_etagere') }}">Créer une etagere</a></p>
+
+        {% for etagere_data in cave_data.etageres %}
+    {% set total_places = etagere_data.etagere['capacite'] %}
+    {% set nb_bouteilles = etagere_data.bouteilles|length %}
+    {% set places_libres = total_places - nb_bouteilles %}
+             <h3>
+        Étagère : {{ etagere_data.etagere['nom'] }}
+        ({{ places_libres }} places libres / {{ total_places }})
+        <a href="{{ url_for('supprimer_etagere', etagere_id=etagere_data.etagere['id']) }}"
+           onclick="return confirm('Voulez-vous vraiment supprimer cette étagère ?');"
+           style="color:red; margin-left:10px;">Supprimer</a>
+    </h3>
+
+            <!-- Bouton pour ajouter une bouteille directement à cette étagère -->
+            <div style="text-align: right; margin-bottom: 10px;">
+                <a href="{{ url_for('creer_bouteille') }}">
+                    <button type="button">+ Ajouter une bouteille</button>
+                </a>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Image</th>
+                        <th>Nom</th>
+                        <th>Domaine</th>
+                        <th>Type</th>
+                        <th>Année</th>
+                        <th>Prix</th>
+                        <th>Archiver</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in etagere_data.bouteilles %}
+                    <tr>
+                        <td>
+                            {% if b['etiquette'] %}
+                                <img src="{{ b['etiquette'] }}" style="max-width:50px;">
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ b['nom'] }}</td>
+                        <td>{{ b['domaine'] }}</td>
+                        <td>{{ b['type'] }}</td>
+                        <td>{{ b['annee'] }}</td>
+                        <td>{{ b['prix'] }} €</td>
+                        <td><a href="{{ url_for('archiver', bouteille_id=b['id']) }}">Archiver</a></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7">Aucune bouteille dans cette étagère.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endfor %}
     {% endfor %}
-</ul>
+</div>
 
 
-<h2>Mes Bouteilles Archivées</h2>
-<ul>
-    {% for b in bouteillesArchivees %}
-    <li>{{ b['nom'] }} - {{ b['domaine'] }} - {{ b['type'] }} - {{ b['annee'] }} - {{ b['note'] }}/10 - Moyenne: {{ b['moyenne'] }}/10 -  {{ b['commentaire'] }}</li>
-    {% endfor %}
-</ul>
 
-<a href="communaute">Avis de la communauté</a>
-<br> <br>
-<a href="{{ url_for('logout') }}">Se déconnecter</a>
+<div class="container">
+    <h1>Mes Bouteilles Archivées</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Image</th>
+                <th>Nom</th>
+                <th>Domaine</th>
+                <th>Type</th>
+                <th>Année</th>
+                <th>Prix</th>
+                <th>Note</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for b in bouteillesArchivees %}
+            <tr>
+                <td>
+                    {% if b['etiquette'] %}
+                        <img src="{{ b['etiquette'] }}">
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>{{ b['nom'] }}</td>
+                <td>{{ b['domaine'] }}</td>
+                <td>{{ b['type'] }}</td>
+                <td>{{ b['annee'] }}</td>
+                <td>{{ b['prix'] }} €</td>
+                <td>{{ b['note'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 </body>
 </html>
