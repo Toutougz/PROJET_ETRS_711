@@ -3,7 +3,6 @@
 #######
 import sqlite3
 from typing import Optional
-from datetime import date
 import logging
 import hashlib
 LOGGER = logging.getLogger(__name__)
@@ -17,7 +16,7 @@ class DB:
         self.conn = sqlite3.connect(db_name, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self.creer_tables()
-
+#Creation des tables de la DB
     def creer_tables(self):
         cur = self.conn.cursor()
 
@@ -86,12 +85,13 @@ class Utilisateur(DB):
         self.caves: list["Cave"] = []
         self.bouteilles : list["Bouteille"] = []
         self.conn=conn
-
+#Modif du return de la class Utilisateur
     def __str__(self):
         return f"[{self.id_utilisateur}] {self.nom} {self.prenom} ({self.login})"
 
 
     def sauvegarder_user(self):
+          """ Permet de sauvegarder l'utilisateur en DB"""
           cur = self.conn.cursor()
           # Vérification : l'utilisateur existe-t-il déjà ?
           cur.execute("SELECT * FROM Utilisateur WHERE login = ?", (self.login,))
@@ -109,15 +109,11 @@ class Utilisateur(DB):
             LOGGER.debug(f"{self} ajouté à la BDD")
             self.conn.commit()
             self.id_utilisateur = cur.lastrowid
+            return f"{self} ajouté à la BDD"
 
-
-    def ajouter_cave(self, cave:"Cave"):
-        if len(self.caves) != 0:
-            print("Vous ne pouvez pas créer de cave, vous avez déja une cave")
-        else:
-            self.caves.append(cave)
 
     def sauvegarder_cave(self,cave:"Cave"):
+        """permet de creer la cave en DB"""
         cur = self.conn.cursor()
         # Vérification : le user a t-il deja une cave ?
         cur.execute("SELECT * FROM Cave WHERE proprietaire = ?", (self.login,))
@@ -135,8 +131,8 @@ class Utilisateur(DB):
             self.conn.commit()
             return True
 
-
     def consulter_cave(self):
+        """On récupère les caves dans la DB, pour les afficher"""
         #for cave in self.caves:
         #    print(f"{cave.nom_cave} de {self.login}, {len(self.bouteilles)} bouteille(s)")
 
@@ -152,38 +148,8 @@ class Utilisateur(DB):
                 # print(f"Cave(s) de {self.prenom} :  {cave.nom_cave}, {bouteille}")
 
 
-    def ajouter_bouteille(self, bouteille:"Bouteille"):
-        self.bouteilles.append(bouteille)
-        LOGGER.debug(f"Bouteille : {bouteille.nom} ajoutée")
-        #print(f"Bouteille : {bouteille.nom} ajoutée")
-
-    """   def sauvegarder_bouteille(self, bouteille:"Bouteille"):
-        cur = self.conn.cursor()
-        # Vérification : le user a t-il deja une cave ?
-        if self.consulter_cave():
-            LOGGER.debug(f"{bouteille.nom} ")
-            cur.execute(
-                    "INSERT INTO Bouteille (domaine, nom, type, annee, region, commentaire, etiquette, prix, proprietaire, statut) VALUES (?,?,?,?,?,?,?,?,?,?)",
-                    (
-                        bouteille.domaine,  # domaine
-                        bouteille.nom,  # nom
-                        bouteille.type,  # type
-                        bouteille.annee,  # annee
-                        bouteille.region,  # region
-                        bouteille.commentaire or "",  # commentaire
-                        bouteille.etiquette or "",  # etiquette (chemin image)
-                        bouteille.prix or 0,  # prix
-                        self.login,  # proprietaire
-                        0  # statut
-                    )
-                    )
-            LOGGER.debug(f"{bouteille.nom} ajoutée à la BDD")
-            self.conn.commit()
-        else:
-            print("impossible d'ajouter une bouteille vous n'avez pas de cave")"""
-
-
     def sauvegarder_bouteille(self, bouteille: "Bouteille"):
+        """Permet de créer une bouteille en DB"""
         cur = self.conn.cursor()
         if self.consulter_cave():
             # Vérifie si l'étagère a encore de la place
@@ -223,12 +189,12 @@ class Utilisateur(DB):
                 return False
         else:
             print("Impossible d'ajouter une bouteille : vous n'avez pas de cave.")
+            return True
 
 
 
     def afficher_bouteille(self):
-        #for bouteille in self.bouteilles:
-        #    print(f"{bouteille}")
+        """Recupère une bouteille en DB pour l'afficher"""
 
         cur = self.conn.cursor()
         cur.execute("SELECT * FROM Bouteille WHERE proprietaire = ? and statut = 0", (self.login,))
@@ -243,6 +209,7 @@ class Utilisateur(DB):
         self.conn.commit()
 
     def afficher_bouteille_archivees(self):
+        """Recupere les bouteilles avec le statut à 1 (archivée) pour le user connecté"""
         cur = self.conn.cursor()
         cur.execute("SELECT * FROM Bouteille WHERE proprietaire = ? and statut = 1", (self.login,))
         AllMyArchivedBottle = cur.fetchall()
@@ -250,20 +217,15 @@ class Utilisateur(DB):
         return AllMyArchivedBottle
 
     def afficher_bouteille_archivees_global(self):
+        """Recupere les bouteilles avec le statut à 1 (archivée) pour la communauté"""
         cur = self.conn.cursor()
         cur.execute("SELECT * FROM Bouteille WHERE statut = 1" )
         ArchivedBottle = cur.fetchall()
         print(ArchivedBottle)
         return ArchivedBottle
 
-
-    def supprimer_bouteille(self,bouteille:"Bouteille"):
-        self.bouteilles.remove(bouteille)
-        LOGGER.debug(f"Bouteille {bouteille.nom} supprimée")
-        #print(f"Bouteille {bouteille.nom} supprimée")
-
-
     def sauvegarder_etagere(self, etagere: "Etagere"):
+        """Permet de créer une étagère dans la DB"""
         cur = self.conn.cursor()
         cur.execute("""
             INSERT INTO Etagere (nom, capacite, proprietaire)
@@ -273,6 +235,7 @@ class Utilisateur(DB):
         self.conn.commit()
 
     def consulter_etagere(self):
+            """Recupère l'étagère pour l'afficher"""
             cur = self.conn.cursor()
             cur.execute("""
                 SELECT E.id, E.nom, E.capacite, B.nom, B.annee, B.type, B.region
@@ -284,6 +247,7 @@ class Utilisateur(DB):
             return cur.fetchall()
 
     def supprimer_etagere(self, etagere_id: int):
+        """Pour supprimer l'étagère si elle est vide"""
         cur = self.conn.cursor()
 
         # Vérifier si l'étagère contient des bouteilles
@@ -304,6 +268,7 @@ class Utilisateur(DB):
             return True
 
     def trier_bouteille(self):
+        """Permet de trier les bouteilles selon un critère"""
         pass
 
 
@@ -320,7 +285,7 @@ class Etagere:
         self.capacite = capacite
 
     def __str__(self):
-        return f"{self.nom_etagere}, Il y a {self.emplacement_bouteille} emplacements"
+        return f"{self.nom_etagere}, Il y a {self.capacite} emplacements"
 
 class Bouteille:
     def __init__(self, domaine:str,nom:str,type:str,annee:str,region:str, prix:float, conn=None, commentaire:Optional[str] = None ,note:Optional[float] = None,moyenne:Optional[float] = None, etiquette: Optional[str] = None, etagere_id: Optional[int] = None,):
@@ -338,16 +303,16 @@ class Bouteille:
         self.etagere_id = etagere_id
 
     def calculerMoyenne(self):
+        """On calcul une moyenne grace aux notes attribuées"""
         cur = self.conn.cursor()
-        cur.execute("SELECT AVG(note) FROM Bouteille WHERE nom = ? AND note IS NOT NULL", (self.nom,))
+        cur.execute("SELECT AVG(note) FROM Bouteille WHERE nom = ? AND type = ? AND note IS NOT NULL", (self.nom,self.type))
         resultat = cur.fetchone()
         self.moyenne = resultat[0] if resultat and resultat[0] is not None else 0
 
         # Mettre à jour la moyenne dans la BDD pour cette bouteille
-        cur.execute("UPDATE Bouteille SET moyenne = ? WHERE nom = ?", (self.moyenne, self.nom))
+        cur.execute("UPDATE Bouteille SET moyenne = ? WHERE nom = ? AND type = ?", (self.moyenne, self.nom,self.type))
         self.conn.commit()
         #on ne match que les bouteilles de 1 user, il faudrait faire comme pour le truc de communauté et matcher les statut = 1
-
 
 
     def __str__(self):
@@ -359,54 +324,11 @@ class Bouteille:
 #######
 
 def main():
-    db = DB()
-    user1 = Utilisateur(1,"User1","PrenomUser1","puser1","azerty123",conn=db.conn)
-    cave1 = Cave("cave1")
-    Utilisateur.ajouter_cave(user1,cave1)
-    user2=Utilisateur(2,"User2","PrenomUser2","puser2","azerty321", conn=db.conn)
-    cave2=Cave("cave2")
-
-    bouteille1 = Bouteille("Chateau Bourgogne","Cabernet Sauvignon","Rouge",2018,"Bourgogne",25)
-    bouteille2 = Bouteille("Chateau Coca","Cocacola","Blanc",2014,"Bourgogne",98)
-    bouteille3 = Bouteille("Chateau Tencin","Le tencinois","Rosée",2003,"Isere",42)
 
 
-
-    Utilisateur.ajouter_bouteille(user1,bouteille1)
-    Utilisateur.ajouter_bouteille(user1,bouteille2)
-    Utilisateur.ajouter_bouteille(user1,bouteille3)
-
-
-    Utilisateur.sauvegarder_bouteille(user1,bouteille1)
-    Utilisateur.sauvegarder_bouteille(user2,bouteille3)
-    Utilisateur.sauvegarder_bouteille(user2,bouteille2)
-
-
-    Utilisateur.ajouter_cave(user2,cave2)
-    Utilisateur.ajouter_cave(user1,cave1)
-
-    Utilisateur.supprimer_bouteille(user1, bouteille1)
-
-    Utilisateur.consulter_cave(user1)
-    Utilisateur.consulter_cave(user2)
-
-    Utilisateur.consulter_etagere(user1)
-
-    Utilisateur.sauvegarder_user(user1)
-    Utilisateur.sauvegarder_user(user2)
-
-    Utilisateur.sauvegarder_cave(user2,cave2)
-    Utilisateur.sauvegarder_cave(user1, cave1)
-
-
-    Utilisateur.afficher_bouteille(user1)
-
-
-    Utilisateur.afficher_bouteille_archivees_global(user1)
-
-if __name__ == "__main__":  # Configuration de la journalisation
-    logging.basicConfig(level=logging.DEBUG)
-    main()
+    if __name__ == "__main__":
+        logging.basicConfig(level=logging.DEBUG) # Pour voir les logs dans la console
+        main()
 
 
 

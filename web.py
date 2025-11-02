@@ -51,14 +51,7 @@ def index():
         return redirect(url_for('login'))
 
     user = get_user()
-    MesBouteilles = user.afficher_bouteille()
     MesBouteillesArchivees = user.afficher_bouteille_archivees()
-
-    # Calcul des moyennes pour les bouteilles archivées
-    noms_uniques = set(b["nom"] for b in MesBouteillesArchivees)
-    for nom in noms_uniques:
-        b = cave.Bouteille(domaine=None, nom=nom, type=None, annee=None, region=None, prix=None, conn=user.conn)
-        b.calculerMoyenne()
 
     # Récupérer les caves
     VoirMaCave = user.consulter_cave()
@@ -81,8 +74,7 @@ def index():
 
             # Récupérer les bouteilles de cette étagère
             cur.execute("""
-                SELECT * FROM Bouteille WHERE etagere_id = ? AND proprietaire = ? AND statut = 0
-            """, (etagere_id, user.login))
+                SELECT * FROM Bouteille WHERE etagere_id = ? AND proprietaire = ? AND statut = 0""", (etagere_id, user.login))
             bouteilles = cur.fetchall()
 
             etageres_data.append({
@@ -95,10 +87,7 @@ def index():
             'etageres': etageres_data
         })
 
-    return render_template('index.html',
-                           user=session['user'],
-                           caves_data=caves_data,
-                           bouteillesArchivees=MesBouteillesArchivees)
+    return render_template('index.html',user=session['user'],caves_data=caves_data,bouteillesArchivees=MesBouteillesArchivees)
 
 
 @app.route("/bouteille")
@@ -150,7 +139,7 @@ def archiver(bouteille_id):
         )
         user.conn.commit()
         return redirect(url_for('index'))
-    # GET → afficher le formulaire
+    # GET: afficher le formulaire
     return render_template("archiver.html", bouteille_id=bouteille_id)
 
 
@@ -329,17 +318,17 @@ def register():
 
         # Création de l'objet utilisateur
         user = Utilisateur(
-            id_utilisateur=None,  # sera défini automatiquement à l'insertion
+            id_utilisateur=None,
             nom=nom,
             prenom=prenom,
             login=login,
             mot_de_passe=mot_de_passe,
-            conn=get_db_connection()  # adapte selon ta fonction pour récupérer la connexion
+            conn=get_db_connection()
         )
 
         # Sauvegarde dans la BDD
         user.sauvegarder_user()
-        flash("Compte créé avec succès ✅", "success")
+        flash("Compte créé avec succès", "success")
         return redirect(url_for('login'))
 
     return render_template('register.html')
