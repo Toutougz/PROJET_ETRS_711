@@ -39,7 +39,33 @@ il n’est pas nécessaire de déployer votre application sur un serveur externe
 
 - Le code commenté de l’application, la documentation (diagrammes UML compris) seront accessibles
 via une forge logicielle (GitHub, GitLab, …)
-Evaluation
 
-- L’évaluation sera réalisée par une revue de code et une évaluation fonctionnelle de votre solution lors
-de la séance d’examen du mardi 4 novembre. Barème indicatif :
+## Documentation de l'application:
+
+### Diagrammes UML:
+
+![Diagrammes UML](static/doc/UML_Projet_ETRS_711.drawio.png)
+
+### Schéma de la base de donées
+![Diagrammes DB](static/doc/db.png)
+### Fonctionnement de l'application:
+1. Executer le programme web.py
+2. Se rendre sur l'url: http://127.0.0.1:5080
+
+Si vous n'avez jamais utilisé l'application, vous devez d'abord crééer un compte:
+
+![Page connexion](static/doc/login.png)
+
+Une fois connecté, vous arriverez sur la page principales ou vous pourrez crééer une cave, des étagères, des bouteilles... Vous aurez aussi la possibilité d'archiver une bouteille pour lui attribuer une note et un commentaire.
+
+![Page principale](static/doc/index.png)
+
+En cliquant sur "Archiver", vous pourrez noter et commenter la bouteille:
+
+![Archive bouteille](static/doc/archive.png)
+
+Enfin, en allant sur "avis de la communauté" (En haut à gauche de la page principale), vous verrez les notes et les commentaires attribués par d'autres utilisateurs:
+
+![Notes communautaires](static/doc/communaute.png)
+
+Bonne Dégustation !
