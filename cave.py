@@ -21,7 +21,6 @@ class DB:
     def creer_tables(self):
         cur = self.conn.cursor()
 
-
         cur.execute("""
                     CREATE TABLE IF NOT EXISTS Utilisateur
                     (
@@ -48,7 +47,7 @@ class DB:
                     prix INTEGER,
                     proprietaire TEXT,
                     statut  INTEGER,
-                    etagere_id INTERGER,
+                    etagere_id INTEGER,
                     FOREIGN KEY (proprietaire) REFERENCES Utilisateur(login),
                     FOREIGN KEY (etagere_id) REFERENCES Etagere(id)
                     )""")

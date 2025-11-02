@@ -9,7 +9,7 @@ import os
 
 app = Flask(__name__)
 app.secret_key = "MaCleTopSecreteDeLaMortQuiTue"
-
+db_init= cave.DB()
 
 def get_db_connection():
     conn = sqlite3.connect("cave_a_vin.db")
@@ -346,4 +346,4 @@ def register():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5080)

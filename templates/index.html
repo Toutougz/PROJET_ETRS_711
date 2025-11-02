@@ -35,9 +35,9 @@
 
 <div class="container">
     <h1>Bouteilles</h1>
+    <p> <a href="{{ url_for('creer_cave') }}">Créer une cave</a> </p>
     {% for cave_data in caves_data %}
         <h2>Cave : {{ cave_data.cave['nom'] }}</h2>
-   <p> <a href="{{ url_for('creer_cave') }}">Créer une cave</a> </p>
    <p> <a href="{{ url_for('creer_etagere') }}">Créer une etagere</a></p>
 
         {% for etagere_data in cave_data.etageres %}
@@ -65,6 +65,7 @@
                         <th>Image</th>
                         <th>Nom</th>
                         <th>Domaine</th>
+                        <th>Région</th>
                         <th>Type</th>
                         <th>Année</th>
                         <th>Prix</th>
@@ -83,6 +84,7 @@
                         </td>
                         <td>{{ b['nom'] }}</td>
                         <td>{{ b['domaine'] }}</td>
+                        <td>{{ b['region'] }}</td>
                         <td>{{ b['type'] }}</td>
                         <td>{{ b['annee'] }}</td>
                         <td>{{ b['prix'] }} €</td>
@@ -90,7 +92,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="7">Aucune bouteille dans cette étagère.</td>
+                        <td colspan="8">Aucune bouteille dans cette étagère.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -109,6 +111,7 @@
                 <th>Image</th>
                 <th>Nom</th>
                 <th>Domaine</th>
+                <th>Région</th>
                 <th>Type</th>
                 <th>Année</th>
                 <th>Prix</th>
@@ -127,6 +130,7 @@
                 </td>
                 <td>{{ b['nom'] }}</td>
                 <td>{{ b['domaine'] }}</td>
+                <td>{{ b['region'] }}</td>
                 <td>{{ b['type'] }}</td>
                 <td>{{ b['annee'] }}</td>
                 <td>{{ b['prix'] }} €</td>
