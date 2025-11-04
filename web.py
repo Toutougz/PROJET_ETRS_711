@@ -138,6 +138,20 @@ def archiver(bouteille_id):
             (note, commentaire, bouteille_id, user.login)
         )
         user.conn.commit()
+        # Calculer et mettre à jour la moyenne du vin
+        cur.execute("SELECT nom, type FROM Bouteille WHERE id = ?", (bouteille_id,))
+        row = cur.fetchone()
+        if row:
+            bouteille = cave.Bouteille(
+                domaine=None,
+                nom=row["nom"],
+                type=row["type"],
+                annee=None,
+                region=None,
+                prix=0,
+                conn=user.conn
+            )
+            bouteille.calculerMoyenne()
         return redirect(url_for('index'))
     # GET: afficher le formulaire
     return render_template("archiver.html", bouteille_id=bouteille_id)
